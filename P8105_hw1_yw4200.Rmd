@@ -6,24 +6,112 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+## Problem 1
+This problem focuses the use of inline R code, plotting, and the behavior of ggplot for variables of different types.
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+Use the code below to download the a package containing the penguins dataset:
+install.packages("moderndive")
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+Write a short description of the dataset using inline R code; accessing the dataset help file can be informative. In your discussion, please include:
 
-```{r cars}
-summary(cars)
+the variables in this dataset, including names / values of important variables
+
+the size of the dataset (using nrow and ncol)
+
+the mean temperature
+
+```{r}
+library(moderndive)
+# load the dataset
+data("early_january_weather")
+
+#a short description of the dataset
+head(early_january_weather)
+
+variables_name <- names(early_january_weather)
+nrow <- nrow(early_january_weather)
+ncol <- ncol(early_january_weather)
+mean_temperature <- mean(early_january_weather$temp)
+
+discription <- paste(
+  "The variables in the dataset:",
+  paste(variables_name, collapse = ", "),
+  sprintf("\nThe dataset has %d rows and %d columns.", nrow, ncol),
+  sprintf("\nThe mean temperature is %.4f.", mean_temperature)
+)
+
+cat(discription)
+```
+Make a scatterplot of temp (y) vs time_hour (x); color points using the humid variable (adding color = ... inside of aes in your ggplot code should help). Describe patterns that are apparent in this plot.
+
+Export your scatterplot to your project directory using ggsave.
+```{r}
+library(ggplot2)
+
+# Make a scatterplot of temp (y) vs time_hour (x)
+scatterplot <- ggplot(
+  early_january_weather, 
+  aes(x = time_hour, y = temp, color = humid)) +
+  geom_point() +
+  labs(x = "Time Hour", y = "Temperature", color = "Humidity")
+
+print(scatterplot)
+
+# Export scatterplot
+ggsave("scatterplot of temp vs time_hour.png", plot =
+         scatterplot)
 ```
 
-## Including Plots
+## Problem 2
 
-You can also embed plots, for example:
+This problem is intended to emphasize variable types and introduce coercion; some awareness of how R treats numeric, character, and factor variables is necessary for working with these data types in practice.
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+Create a data frame comprised of:
+
+a random sample of size 10 from a standard Normal distribution
+a logical vector indicating whether elements of the sample are greater than 0
+a character vector of length 10
+a factor vector of length 10, with 3 different factor “levels”
+Try to take the mean of each variable in your dataframe. What works and what doesn’t?
+
+Hint: for now, to take the mean of a variable in a dataframe, you need to pull the variable out of the dataframe. Try loading the tidyverse and using the pull function.
+```{r}
+library(tidyverse)
+
+data <- tibble(
+  random_sample = rnorm(10),
+  logical_vector = rnorm(10) > 0,
+  character_vector = letters[1:10],
+  factor_vector = factor(rep(c("a", "b", "c"), 
+                             length.out =10))
+)
+
+as.numeric(data$factor_vector)
+# calculate the mean
+data %>% pull(random_sample) %>% mean()
+data %>% pull(logical_vector) %>% mean()
+data %>% pull(character_vector) %>% mean()
+data %>% pull(factor_vector) %>% mean()
+
+# We can calculate the mean of random_sample and logical_vector. The mean of random_sample is -0.367082 and the mean of logical_vector is 0.3. But character_vector and factor_vector are not numeric, so we can't calculate its mean directly.
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+In some cases, you can explicitly convert variables from one type to another. Write a code chunk that applies the as.numeric function to the logical, character, and factor variables (please show this chunk but not the output). What happens, and why? Does this help explain what happens when you try to take the mean?
+
+```{r}
+# convert variables to numeric
+numeric_logical_vector <- as.numeric(data$logical_vector)
+numeric_character_vector <- as.numeric(data$character_vector)
+numeric_factor_vector <- as.numeric(data$factor_vector)
+
+# For the logical vector,logical values TRUE are changed to numeric value 1 and FALSE are changed to numeric values 0.
+
+# For the character vector, R try to change character into numeric value. But in this situation, letters can't be coverted to numeric values, so it onlt shows NA.
+
+# For the factor vector, there are underlying numeric codes for each level of the factor when using as.numeric function. In this instance, numeric_factor includes "a", "b", and "c". These codes are based on the sequence in which the levels were specified when the factor was created. If level "A" was the first level, it is represented as 1, level "B" as 2, and level "C" as 3.
+
+# This help explain what happens when you try to take the mean. When we calculate the mean, we can get the mean of logical vector because of their underlying correspondence ("True" represents the value 1 and "False" represents the value 0). But we can't get the mean of character vector and factor vector because it doesn't have meaning when being converted to the numeric value.
+```
